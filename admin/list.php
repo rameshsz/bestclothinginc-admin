@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <script src="https://unpkg.com/vue@3"></script>
+  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+  <script src="./app.js" defer></script>
+  <style>
+
+    #product_view{
+      text-align: center;
+    }
+    
+    .tabs{
+      padding: 5px;
+      cursor: pointer;
+    }
+
+    h1,
+    h4 {
+      display: inline;
+      text-decoration: underline;
+    }
+
+    table {
+      margin-top: 5px;
+    }
+
+    tr {
+      margin-bottom: 50px;
+    }
+
+    td {
+      text-align: center;
+    }
+
+    th {
+      padding-left: 15px;
+      padding-right: 15px;
+    }
+
+    td,
+    th {
+      border: 1px solid black;
+      text-align: left;
+      padding: 8px;
+    }
+
+    table {
+      margin-left: auto;
+      margin-right: auto;
+      border-collapse: collapse;
+    }
+
+    .remove {
+      border: none;
+    }
+
+    .highlight:hover {
+      background-color: lightgray;
+    }
+
+    .highlight {
+      outline: thin solid;
+    }
+
+    label {
+      display: inline-block;
+      width: 150px;
+      text-align: left;
+    }
+
+    input[type=number] {
+      width: 70px;
+    }
+
+    /* .update_field{
+        height: 100%;
+        padding: 0;
+    } */
+  </style>
+  <title>Admin</title>
+</head>
+
+<body>
+  <?php
+  ini_set('display_errors', true);
+  /* Make sure we have a session. */
+  session_start();
+  require('User.php');
+  /* Figure out who the logged in user is. */
+  $user = User::whoami();
+  if ($user) {
+    printf('<p>Hello, %s (%d). Click <a href="logout.php">here</a> to '
+      . 'log out.</p>', htmlspecialchars($user->handle()), htmlspecialchars($user->id()));
+  } else {
+    die("<p>Hey, you\'re not logged in yet! Click <a href='home.php'>here</a> to do so.</p>");
+  }
+  ?>
+  <div id="app">
+    <div id='product_view'>
+      <h1 class='tabs' id='products_tab' v-on:click="productList()" v-if="showProducts">Products</h1>
+      <h4 class='tabs' id='products_tab_small' v-on:click="productList()" v-else>Products</h4>
+      <h1 class='tabs' id='users_tab' v-on:click="customerList()" v-if="showCustomers">Customers</h1>
+      <h4 class='tabs' id='users_tab' v-on:click="customerList()" v-else>Customers</h4>
+      <table border="0" width="80%" style="border-collapse: collapse" v-if="showProducts">
+        <tr>
+          <th style=border:none></th>
+          <th>Item ID</th>
+          <th>Brand</th>
+          <th>Name</th>
+          <th>Price</th>
+          <th>Category</th>
+          <th>Image</th>
+          <th>Featured</th>
+        </tr>
+        <tr v-for="(product in products" v-bind:key="product.prod_itemid">
+          <td style=border:none><button class="update" v-bind:id="'up_'+product.prod_itemid">Edit</button></td>
+          <td class="prod_itemid" v-if="product.edit"><input class="prod_itemid" v-bind:id="product.prod_id" @blur="product.edit = false; $emit('update')" @keyup.enter="updateProduct(); product.edit=false; $emit('update')"></td>
+          <td v-else @click="product.edit = true;">{{ product.prod_itemid }}</td>
+          <td class="prod_brand" v-if="product.edit"><input v-model="product.prod_brand" @blur="product.edit = false; $emit('update')" @keyup.enter="product.edit=false; $emit('update')"></td>
+          <td v-else @click="product.edit = true">{{ product.prod_brand }}</td>
+          <td class="prod_name" v-if="product.edit"><input v-model="product.prod_name" @blur="product.edit = false; $emit('update')" @keyup.enter="product.edit=false; $emit('update')"></td>
+          <td v-else @click="product.edit = true">{{ product.prod_name }}</td>
+          <td class="prod_price" v-if="product.edit"><input v-model="product.prod_price" @blur="product.edit = false; $emit('update')" @keyup.enter="product.edit=false; $emit('update')"></td>
+          <td v-else @click="product.edit = true">{{ product.prod_price }}</td>
+          <td class="prod_category" v-if="product.edit"><input v-model="product.prod_category" @blur="product.edit = false; $emit('update')" @keyup.enter="product.edit=false; $emit('update'); "></td>
+          <td v-else @click="product.edit = true">{{ product.prod_category }}</td>
+          <td class="prod_img" v-if="product.edit"><input v-model="product.prod_img" @blur="product.edit = false; $emit('update')" @keyup.enter="product.edit=false; $emit('update')"></td>
+          <td v-else @click="product.edit = true">{{ product.prod_img }}</td>
+          <td class="featured" v-if=" product.edit"><input v-model="product.prod_featured" @blur="product.edit = false; $emit('update')" @keyup.enter="product.edit=false; $emit('update')"></td>
+          <td v-else @click="product.edit = true">{{ product.featured }}</td>
+          <td class="remove"><button class="remove_cell" v-bind:id="product.prod_itemid" style="float:right" v-on:click="removeProduct">Remove</button></td>
+        </tr>
+      </table>
+      <table border="0" width="80%" style="border-collapse: collapse" v-else>
+        <tr>
+          <th>USERNAME</th>
+          <th>FIRST NAME</th>
+          <th>LAST NAME</th>
+          <th>ADDRESS</th>
+          <th>EMAIL</th>
+        </tr>
+
+        <tr v-for="customer in customers" v-bind:id="customer.customer_id">
+          <td>{{ customer.username }}</td>
+          <td>{{ customer.first_name }}</td>
+          <td>{{ customer.last_name }}</td>
+          <td>{{ customer.address }}</td>
+          <td>{{ customer.email }}</td>
+          <td class="remove"><button class="remove_cell" style="padding: 2px;" v-bind:id="customer.customer_id" style="float:right" v-on:click="removeCustomer">Remove</button></td>
+        </tr>
+      </table>
+    </div>
+    <div id='add_product'>
+      <h2>Add Product</h2>
+      <hr />
+      <form action="addProduct.php" method="post">
+        <p><label for="prod_itemid">Item ID: </label> <input type="text" name="prod_itemid" required />
+        <p><label for="prod_brand">Brand: </label> <input type="text" name="prod_brand" required />
+        <p><label for="prod_name">Name: </label> <input type="text" name="prod_name" required />
+        <p><label for="prod_price">Price: </label> <input type="number" step="0.1" maxlength='5' name="prod_price" required />
+        <p><label for="prod_img">Image: </label> <input type="text" name="prod_img" required />
+        <p><label for="prod_category">Category: </label> <input type="text" name="prod_category" required />
+          <input type="submit" style="margin: 5px;" /><input type="reset" />
+      </form>
+    </div>
+  </div>
+</body>
+
+</html>
